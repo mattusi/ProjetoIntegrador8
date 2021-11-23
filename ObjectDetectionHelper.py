@@ -126,9 +126,3 @@ class ObjectDetection:
     def read(self):
         return "[OBJECT DETECTED]"
 
-
-            
-
-test = ObjectDetection()
-test.setUp()
-test.startDetection()
