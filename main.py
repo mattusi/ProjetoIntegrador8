@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import ssl
+import threading
 import time
 import json
 
@@ -19,6 +20,8 @@ import importlib.util
 
 from ObjectDetectionHelper import ObjectDetection
 
+import RPi.GPIO as GPIO
+
 global minimum_backoff_time
 global MAXIMUM_BACKOFF_TIME
 
@@ -29,7 +32,7 @@ cloud_region = 'us-central1'
 
 device_id = "raspi400"
 project_id = 'factory-automation-331600'
-message_type = 'state'
+message_type = 'event'
 
 registry_id = 'esteira'
 
@@ -47,6 +50,36 @@ mqtt_topic = '/devices/{}/{}'.format(device_id, sub_topic)
 
 
 #Capturar sinal do sensor infravermelho
+
+#led status
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(16, GPIO.OUT)
+GPIO.setup(20, GPIO.OUT)
+GPIO.setup(21, GPIO.OUT)
+GPIO.setup(19, GPIO.OUT)
+def setLedConnection(isConnected):
+    if isConnected:
+        GPIO.output(21, GPIO.HIGH)
+    else:
+        GPIO.output(21, GPIO.LOW)
+setLedConnection(False)
+
+def sendingMessageLed():
+    for i in range(5):
+        GPIO.output(19, GPIO.HIGH)
+        time.sleep(0.1)
+        GPIO.output(19, GPIO.LOW)
+        time.sleep(0.1)
+
+def setObjectLed(object_name):
+    if object_name == "person":
+        GPIO.output(16, GPIO.LOW)
+        GPIO.output(20, GPIO.HIGH)
+    else:
+        GPIO.output(16, GPIO.HIGH)
+        GPIO.output(20, GPIO.LOW)
+        
+
 
 #Start IoT MQTT STUFF
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.CRITICAL)
@@ -115,6 +148,7 @@ def on_connect(unused_client, unused_userdata, unused_flags, rc):
     global minimum_backoff_time
     should_backoff = False
     minimum_backoff_time = 1
+    setLedConnection(True)
 
 
 def on_disconnect(unused_client, unused_userdata, rc):
@@ -125,11 +159,14 @@ def on_disconnect(unused_client, unused_userdata, rc):
     # exponential backoff.
     global should_backoff
     should_backoff = True
+    setLedConnection(False)
 
 
 def on_publish(unused_client, unused_userdata, unused_mid):
     """Paho callback when a message is sent to the broker."""
     print("on_publish")
+    t = threading.Thread(name="led-blink", target=sendingMessageLed, args=())
+    t.start()
 
 
 def on_message(unused_client, unused_userdata, message):
@@ -420,8 +457,17 @@ client = get_client(
     mqtt_bridge_hostname, mqtt_bridge_port)
 
 objectDetection = ObjectDetection()
-#objectDetection.setUp()
-#objectDetection.startDetection()
+objectDetection.setUp()
+objectDetection.startDetection()
+#start led thread
+def ledThread():
+    while True:
+        time.sleep(0.5)
+        object_name = objectDetection.read()
+        setObjectLed(object_name)
+t2 = threading.Thread(name="LedObject", target=ledThread, args=())
+t2.start()
+
 #Start our infine loop
 i = 0
 while True:
@@ -445,10 +491,11 @@ while True:
     # Publish "payload" to the MQTT topic. qos=1 means at least once
     # delivery. Cloud IoT Core also supports qos=0 for at most once
     # delivery.
-    data_set = {"regId": registry_id, "devId": device_id, "num": i, "myData": random.randint(0, 100)}
+    object_name = objectDetection.read()
+    data_set = {"regId": registry_id, "devId": device_id, "num": i, "myData": object_name}
     payload = json.dumps(data_set)
-    
     print('Publishing message #{}: \'{}\''.format(i, payload))
+    setObjectLed(object_name)
         # [START iot_mqtt_jwt_refresh]
     seconds_since_issue = (datetime.datetime.utcnow() - jwt_iat).seconds
     if seconds_since_issue > 60 * jwt_exp_mins:
@@ -474,6 +521,6 @@ while True:
     client.publish(mqtt_topic, payload, qos=1)
 
     # Send events every second. State should not be updated as often
-    for i in range(0, 60):
+    for i in range(0, 5):
         time.sleep(1)
         client.loop()

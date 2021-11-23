@@ -18,6 +18,7 @@ class ObjectDetection:
         self.imput_mean = 127.5
         self.input_std = 127.5
         self.frame_rate_calc = 1
+        self.label = "Nothing"
 
         self.MODEL_NAME = "Sample_TFLite_model"
         self.GRAPH_NAME = "detect.tflite"
@@ -105,6 +106,7 @@ class ObjectDetection:
                     label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
                     cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
                     cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
+                    self.label = object_name
             # Draw framerate in corner of frame
             cv2.putText(frame,'FPS: {0:.2f}'.format(self.frame_rate_calc),(30,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0),2,cv2.LINE_AA)
 
@@ -124,5 +126,5 @@ class ObjectDetection:
         return self
 
     def read(self):
-        return "[OBJECT DETECTED]"
+        return self.label
 
