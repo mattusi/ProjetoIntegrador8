@@ -72,7 +72,7 @@ def sendingMessageLed():
         time.sleep(0.1)
 
 def setObjectLed(object_name):
-    if object_name == "person":
+    if object_name == "GoodSample":
         GPIO.output(16, GPIO.LOW)
         GPIO.output(20, GPIO.HIGH)
     else:

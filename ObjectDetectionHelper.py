@@ -20,7 +20,7 @@ class ObjectDetection:
         self.frame_rate_calc = 1
         self.label = "Nothing"
 
-        self.MODEL_NAME = "Sample_TFLite_model"
+        self.MODEL_NAME = "factoryAutomation2311"
         self.GRAPH_NAME = "detect.tflite"
         self.LABELMAP_NAME = "labelmap.txt"
         self.min_conf_threshold = 0.5
