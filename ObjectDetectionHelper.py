@@ -37,6 +37,11 @@ class ObjectDetection:
         # Load the label map
         with open(self.PATH_TO_LABELS, 'r') as f:
             self.labels = [line.strip() for line in f.readlines()]
+        # Have to do a weird fix for label map if using the COCO "starter model" from
+        # https://www.tensorflow.org/lite/models/object_detection/overview
+        # First label is '???', which has to be removed.
+        if self.labels[0] == '???':
+            del(self.labels[0])
 
         #load the tensorflow lite model
         self.interpreter = Interpreter(model_path=self.PATH_TO_CKPT)
@@ -117,6 +122,9 @@ class ObjectDetection:
     def startDetection(self):
         Thread(target=self.run, args=()).start()
         return self
+
+    def read(self):
+        return "[OBJECT DETECTED]"
 
 
             
